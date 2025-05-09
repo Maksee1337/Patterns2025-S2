@@ -74,11 +74,11 @@ class Cities {
 
   addCity(city) {
     this.#list.push(city);
-    if (city.destiny > this.#maxDestiny)   this.#maxDestiny = city.destiny;
+    if (city.destiny > this.#maxDestiny) { this.#maxDestiny = city.destiny; }
   }
 
   sortByDestiny() {
-    this.#list =  this.#list.sort((d1, d2) => d2.destiny - d1.destiny);
+    this.#list = this.#list.sort((d1, d2) => d2.destiny - d1.destiny);
   }
 
   printTable({ addDestinyPercentage = true } = {}) {
