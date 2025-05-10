@@ -13,7 +13,7 @@
 //   - Try to implement in multiple paradigms: OOP, FP, procedural, mixed
 //   - Prepare load testing and trace V8 deopts
 
-const data = `city,population,area,density,country
+let data = `city,population,area,density,country
   Shanghai,24256800,6340,3826,China
   Delhi,16787941,1484,11313,India
   Lagos,16060303,1171,13712,Nigeria
@@ -26,33 +26,53 @@ const data = `city,population,area,density,country
   Bangkok,8280925,1569,5279,Thailand`;
 
 class City {
+  #PADS = {
+    CITY_NAME: 18,
+    POPULATION: 10,
+    AREA: 8,
+    DENSITY: 8,
+    COUNTRY: 18,
+    PERSENTAGE: 6,
+  };
+
   #cityName = '';
   #population = 0;
   #area = 0;
   #density = 0;
   #country = '';
+
   constructor(data) {
     const fields = data.split(',');
-    if (fields.length !== 5) { throw Error('WrongData'); }
+    if (fields.length !== 5) {
+      throw Error('WrongData');
+    }
 
     this.#cityName = fields[0].trim();
-    this.#population = fields[1];
-    this.#area = fields[2];
-    this.#density = fields[3];
+    this.#population = Number(fields[1]);
+    this.#area = Number(fields[2]);
+    this.#density = Number(fields[3]);
     this.#country = fields[4];
   }
-  get destiny() {
-    return +this.#density;
+  get density() {
+    return this.#density;
   }
 
-  toString() {
+  toString({ addDensityPercentage = true, maxDensity = 0 } = {}) {
     let result = '';
-    result += this.#cityName.padEnd(18);
-    result += this.#population.padStart(10);
-    result += this.#area.padStart(8);
-    result += this.#density.padStart(8);
-    result += this.#country.padStart(18);
+    result += this.#cityName.padEnd(this.#PADS.CITY_NAME);
+    result += String(this.#population).padStart(this.#PADS.POPULATION);
+    result += String(this.#area).padStart(this.#PADS.AREA);
+    result += String(this.#density).padStart(this.#PADS.DENSITY);
+    result += this.#country.padStart(this.#PADS.COUNTRY);
+    if (addDensityPercentage) {
+      const percentage = Math.round((this.#density * 100) / maxDensity);
+      result += String(percentage).padStart(this.#PADS.PERSENTAGE);
+    }
     return result;
+  }
+
+  print({ addDensityPercentage = true, maxDensity = 0 } = {}) {
+    console.log(this.toString({ addDensityPercentage, maxDensity }));
   }
 }
 
@@ -62,7 +82,7 @@ class Cities {
   }
 
   #list = [];
-  #maxDestiny = 0;
+  #maxDensity = 0;
 
   importList(list, { skipHeader = true } = {}) {
     const lines = list.split('\n');
@@ -74,31 +94,27 @@ class Cities {
 
   addCity(city) {
     this.#list.push(city);
-    if (city.destiny > this.#maxDestiny) { this.#maxDestiny = city.destiny; }
+    if (city.density > this.#maxDensity) {
+      this.#maxDensity = city.density;
+    }
   }
 
-  sortByDestiny() {
-    this.#list = this.#list.sort((d1, d2) => d2.destiny - d1.destiny);
+  sortByDensity() {
+    this.#list.sort((d1, d2) => d2.density - d1.density);
   }
 
-  printTable({ addDestinyPercentage = true } = {}) {
+  print({ addDensityPercentage = true } = {}) {
     this.#list.forEach((city) => {
-      let result = city.toString();
-      if (addDestinyPercentage) {
-        result +=
-            String(Math.round((city.destiny * 100) / this.#maxDestiny))
-                .padStart(6);
-      }
-      console.log(result);
+      city.print({ addDensityPercentage, maxDensity: this.#maxDensity });
     });
   }
 }
 
 const startTime = performance.now();
 
-const cities =  Cities.fromList(data);
+const cities = Cities.fromList(data);
 cities.addCity(new City('New1 York City,8537673,784,110892,United States'));
-cities.sortByDestiny();
-cities.printTable();
+cities.sortByDensity();
+cities.print();
 const endTime = performance.now();
 console.log(`${endTime - startTime} milliseconds`);
