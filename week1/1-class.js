@@ -13,7 +13,7 @@
 //   - Try to implement in multiple paradigms: OOP, FP, procedural, mixed
 //   - Prepare load testing and trace V8 deopts
 
-let data = `city,population,area,density,country
+const data = `city,population,area,density,country
   Shanghai,24256800,6340,3826,China
   Delhi,16787941,1484,11313,India
   Lagos,16060303,1171,13712,Nigeria
@@ -32,7 +32,7 @@ class City {
     AREA: 8,
     DENSITY: 8,
     COUNTRY: 18,
-    PERSENTAGE: 6,
+    PERCENTAGE: 6,
   };
 
   #cityName = '';
@@ -66,7 +66,7 @@ class City {
     result += this.#country.padStart(this.#PADS.COUNTRY);
     if (addDensityPercentage) {
       const percentage = Math.round((this.#density * 100) / maxDensity);
-      result += String(percentage).padStart(this.#PADS.PERSENTAGE);
+      result += String(percentage).padStart(this.#PADS.PERCENTAGE);
     }
     return result;
   }
@@ -118,3 +118,4 @@ cities.sortByDensity();
 cities.print();
 const endTime = performance.now();
 console.log(`${endTime - startTime} milliseconds`);
+
