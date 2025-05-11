@@ -25,71 +25,78 @@ const data = `city,population,area,density,country
   New York City,8537673,784,10892,United States
   Bangkok,8280925,1569,5279,Thailand`;
 
-class City {
-  #PADS = {
-    CITY_NAME: 18,
-    POPULATION: 10,
-    AREA: 8,
-    DENSITY: 8,
-    COUNTRY: 18,
-    PERCENTAGE: 6,
-  };
+class ConsolePrinter {
+  #schema = {};
+  constructor(schema = {}) {
+    this.#schema = schema;
+  }
 
+  print = (data) => {
+    let result = '';
+    for (const [key, { f, fValue }] of Object.entries(this.#schema)) {
+      const str = String(data[key]);
+      if (!data[key] || !f || !fValue || !str[f]) continue;
+      result += str[f](fValue);
+    }
+    console.log(result);
+  };
+}
+
+class Parser {
+  static parseList(list, { skipHeader = true, schema = {} } = {}) {
+    const result = [];
+    const lines = list.split('\n');
+    for (let i = skipHeader ? 1 : 0; i < lines.length; i++) {
+      const fields = lines[i].split(',');
+      const item = {};
+      for (const [index, [key, { type, parse = true } = {}]] of Object.entries(
+        schema,
+      ).entries()) {
+        if (!parse) continue;
+        const value =
+          type === String ? type(fields[index]).trim() : type(fields[index]);
+        item[key] = value;
+      }
+      result.push(item);
+    }
+    return result;
+  }
+}
+class City {
   #cityName = '';
   #population = 0;
   #area = 0;
   #density = 0;
   #country = '';
 
-  constructor(data) {
-    const fields = data.split(',');
-    if (fields.length !== 5) {
-      throw Error('WrongData');
-    }
-
-    this.#cityName = fields[0].trim();
-    this.#population = Number(fields[1]);
-    this.#area = Number(fields[2]);
-    this.#density = Number(fields[3]);
-    this.#country = fields[4];
+  constructor({ cityName, population, area, density, country }) {
+    this.#cityName = cityName;
+    this.#population = population;
+    this.#area = area;
+    this.#density = density;
+    this.#country = country;
   }
   get density() {
     return this.#density;
   }
 
-  toString({ addDensityPercentage = true, maxDensity = 0 } = {}) {
-    let result = '';
-    result += this.#cityName.padEnd(this.#PADS.CITY_NAME);
-    result += String(this.#population).padStart(this.#PADS.POPULATION);
-    result += String(this.#area).padStart(this.#PADS.AREA);
-    result += String(this.#density).padStart(this.#PADS.DENSITY);
-    result += this.#country.padStart(this.#PADS.COUNTRY);
-    if (addDensityPercentage) {
-      const percentage = Math.round((this.#density * 100) / maxDensity);
-      result += String(percentage).padStart(this.#PADS.PERCENTAGE);
-    }
-    return result;
-  }
-
-  print({ addDensityPercentage = true, maxDensity = 0 } = {}) {
-    console.log(this.toString({ addDensityPercentage, maxDensity }));
+  toObject() {
+    return {
+      cityName: this.#cityName,
+      population: this.#population,
+      area: this.#area,
+      density: this.#density,
+      country: this.#country,
+    };
   }
 }
 
 class Cities {
-  static fromList(list, { skipHeader = true } = {}) {
-    return new Cities().importList(list, { skipHeader });
-  }
-
   #list = [];
   #maxDensity = 0;
 
-  importList(list, { skipHeader = true } = {}) {
-    const lines = list.split('\n');
-    for (let i = skipHeader ? 1 : 0; i < lines.length; i++) {
-      this.addCity(new City(lines[i]));
-    }
-    return this;
+  get maxDensity() {
+    return this.#maxDensity;
   }
 
   addCity(city) {
@@ -103,19 +110,35 @@ class Cities {
     this.#list.sort((d1, d2) => d2.density - d1.density);
   }
 
-  print({ addDensityPercentage = true } = {}) {
-    this.#list.forEach((city) => {
-      city.print({ addDensityPercentage, maxDensity: this.#maxDensity });
-    });
+  forEach(callback) {
+    for (let city of this.#list) {
+      callback(city.toObject());
+    }
   }
 }
-
 const startTime = performance.now();
 
-const cities = Cities.fromList(data);
-cities.addCity(new City('New1 York City,8537673,784,110892,United States'));
+const schema = {
+  cityName: { type: String, f: 'padEnd', fValue: 18 },
+  population: { type: Number, f: 'padStart', fValue: 10 },
+  area: { type: Number, f: 'padStart', fValue: 8 },
+  density: { type: Number, f: 'padStart', fValue: 8 },
+  country: { type: String, f: 'padStart', fValue: 18 },
+  percentage: { type: Number, f: 'padStart', fValue: 6, parse: false },
+};
+
+const consolePrinter = new ConsolePrinter(schema);
+const citiesList = Parser.parseList(data, { schema });
+
+const cities = new Cities();
+citiesList.forEach((city) => cities.addCity(new City(city)));
 cities.sortByDensity();
-cities.print();
+cities.forEach((city) => {
+  consolePrinter.print({
+    ...city,
+    percentage: Math.round((city.density * 100) / cities.maxDensity),
+  });
+});
+
 const endTime = performance.now();
 console.log(`${endTime - startTime} milliseconds`);
-
