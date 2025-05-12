@@ -31,7 +31,7 @@ class ConsolePrinter {
     this.#schema = schema;
   }
 
-  print = (data) => {
+  print(data) {
     let result = '';
     for (const [key, { f, fValue }] of Object.entries(this.#schema)) {
       const str = String(data[key]);
@@ -43,19 +43,33 @@ class ConsolePrinter {
 }
 
 class Parser {
-  static parseList(list, { skipHeader = true, schema = {} } = {}) {
+  #schema = {};
+  #normalizedSchema = [];
+
+  #normalizeSchema() {
+    for (const [index, [key, { type, parse = true } = {}]] of Object.entries(
+        this.#schema,
+    ).entries()) {
+      this.#normalizedSchema.push({ index, name: key, type, parse });
+    }
+  }
+
+  constructor(schema = {}) {
+    this.#schema = schema;
+    this.#normalizeSchema();
+  }
+
+  parseList(list, { skipHeader = true  } = {}) {
     const result = [];
     const lines = list.split('\n');
     for (let i = skipHeader ? 1 : 0; i < lines.length; i++) {
       const fields = lines[i].split(',');
       const item = {};
-      for (const [index, [key, { type, parse = true } = {}]] of Object.entries(
-        schema,
-      ).entries()) {
+      for (const { index, name, type, parse } of this.#normalizedSchema) {
         if (!parse) continue;
         const value =
-          type === String ? type(fields[index]).trim() : type(fields[index]);
-        item[key] = value;
+            type === String ? type(fields[index]).trim() : type(fields[index]);
+        item[name] = value;
       }
       result.push(item);
     }
@@ -63,14 +77,14 @@ class Parser {
   }
 }
 class City {
-  #cityName = '';
+  #name = '';
   #population = 0;
   #area = 0;
   #density = 0;
   #country = '';
 
-  constructor({ cityName, population, area, density, country }) {
-    this.#cityName = cityName;
+  constructor({ name, population, area, density, country }) {
+    this.#name = name;
     this.#population = population;
     this.#area = area;
     this.#density = density;
@@ -82,7 +96,7 @@ class City {
 
   toObject() {
     return {
-      cityName: this.#cityName,
+      name: this.#name,
       population: this.#population,
       area: this.#area,
       density: this.#density,
@@ -111,7 +125,7 @@ class Cities {
   }
 
   forEach(callback) {
-    for (let city of this.#list) {
+    for (const city of this.#list) {
       callback(city.toObject());
     }
   }
@@ -119,7 +133,7 @@ class Cities {
 const startTime = performance.now();
 
 const schema = {
-  cityName: { type: String, f: 'padEnd', fValue: 18 },
+  name: { type: String, f: 'padEnd', fValue: 18 },
   population: { type: Number, f: 'padStart', fValue: 10 },
   area: { type: Number, f: 'padStart', fValue: 8 },
   density: { type: Number, f: 'padStart', fValue: 8 },
@@ -128,10 +142,14 @@ const schema = {
 };
 
 const consolePrinter = new ConsolePrinter(schema);
-const citiesList = Parser.parseList(data, { schema });
+const citiesParser = new Parser(schema);
+
+const citiesList = citiesParser.parseList(data);
 
 const cities = new Cities();
+
 citiesList.forEach((city) => cities.addCity(new City(city)));
+
 cities.sortByDensity();
 cities.forEach((city) => {
   consolePrinter.print({
