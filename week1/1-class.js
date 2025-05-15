@@ -33,13 +33,14 @@ class ConsolePrinter {
 
   print(data) {
     let result = '';
-    for (const [key, { f, fValue }] of Object.entries(this.#schema)) {
+    for (const [key, { format, fValue }] of Object.entries(this.#schema)) {
+      const { stringMethod, args } = format;
       const str = String(data[key]);
-      if (!data[key] || !f || !fValue || !str[f]) continue;
-      result += str[f](fValue);
+      if (!data[key] || !stringMethod || !args || !str[stringMethod]) continue;
+      result += str[stringMethod](...args);
     }
     console.log(result);
-  };
+  }
 }
 
 class Parser {
@@ -48,7 +49,7 @@ class Parser {
 
   #normalizeSchema() {
     for (const [index, [key, { type, parse = true } = {}]] of Object.entries(
-        this.#schema,
+      this.#schema,
     ).entries()) {
       this.#normalizedSchema.push({ index, name: key, type, parse });
     }
@@ -59,7 +60,7 @@ class Parser {
     this.#normalizeSchema();
   }
 
-  parseList(list, { skipHeader = true  } = {}) {
+  parseList(list, { skipHeader = true } = {}) {
     const result = [];
     const lines = list.split('\n');
     for (let i = skipHeader ? 1 : 0; i < lines.length; i++) {
@@ -67,8 +68,8 @@ class Parser {
       const item = {};
       for (const { index, name, type, parse } of this.#normalizedSchema) {
         if (!parse) continue;
-        const value =
-            type === String ? type(fields[index]).trim() : type(fields[index]);
+        const parsedData = type(fields[index]);
+        const value = type === String ? parsedData.trim() : parsedData;
         item[name] = value;
       }
       result.push(item);
@@ -133,12 +134,16 @@ class Cities {
 const startTime = performance.now();
 
 const schema = {
-  name: { type: String, f: 'padEnd', fValue: 18 },
-  population: { type: Number, f: 'padStart', fValue: 10 },
-  area: { type: Number, f: 'padStart', fValue: 8 },
-  density: { type: Number, f: 'padStart', fValue: 8 },
-  country: { type: String, f: 'padStart', fValue: 18 },
-  percentage: { type: Number, f: 'padStart', fValue: 6, parse: false },
+  name: { type: String, format: { stringMethod: 'padEnd', args: [18] } },
+  population: { type: Number, format: { stringMethod: 'padEnd', args: [10] } },
+  area: { type: Number, format: { stringMethod: 'padEnd', args: [8] } },
+  density: { type: Number, format: { stringMethod: 'padEnd', args: [8] } },
+  country: { type: String, format: { stringMethod: 'padEnd', args: [18] } },
+  percentage: {
+    type: Number,
+    format: { stringMethod: 'padEnd', args: [18] },
+    parse: false,
+  },
 };
 
 const consolePrinter = new ConsolePrinter(schema);
