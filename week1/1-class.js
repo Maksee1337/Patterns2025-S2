@@ -33,7 +33,7 @@ class ConsolePrinter {
 
   print(data) {
     let result = '';
-    for (const [key, { format, fValue }] of Object.entries(this.#schema)) {
+    for (const [key, { format }] of Object.entries(this.#schema)) {
       const { stringMethod, args } = format;
       const str = String(data[key]);
       if (!data[key] || !stringMethod || !args || !str[stringMethod]) continue;
