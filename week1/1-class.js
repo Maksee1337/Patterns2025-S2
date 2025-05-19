@@ -27,19 +27,31 @@ const data = `city,population,area,density,country
 
 class ConsolePrinter {
   #schema = {};
+  #formatters = {
+    padStart: ({ str, args }) => str.padStart(...args),
+    padEnd: ({ str, args }) => str.padEnd(...args),
+  };
   constructor(schema = {}) {
     this.#schema = schema;
   }
 
   print(data) {
     let result = '';
-    for (const [key, { format }] of Object.entries(this.#schema)) {
-      const { stringMethod, args } = format;
+    for (const [key, schemaItem] of Object.entries(this.#schema)) {
+      const { stringMethod, args } = schemaItem.format;
       const str = String(data[key]);
-      if (!data[key] || !stringMethod || !args || !str[stringMethod]) continue;
-      result += str[stringMethod](...args);
+      if (!data[key] || !stringMethod) continue;
+
+      result += this.formatString({ str, stringMethod, args });
     }
     console.log(result);
+  }
+
+  formatString({ str, stringMethod, args }) {
+    if (!this.#formatters[stringMethod]) {
+      throw new Error(`Unknown format method: ${stringMethod}`);
+    }
+    return this.#formatters[stringMethod]({ str, args });
   }
 }
 
@@ -47,11 +59,25 @@ class Parser {
   #schema = {};
   #normalizedSchema = [];
 
+  #getType(type) {
+    const types = {
+      string: String,
+      number: Number,
+    };
+    if (!types[type]) throw new Error(`Unknown type: ${type}`);
+    return types[type];
+  }
+
   #normalizeSchema() {
     for (const [index, [key, { type, parse = true } = {}]] of Object.entries(
       this.#schema,
     ).entries()) {
-      this.#normalizedSchema.push({ index, name: key, type, parse });
+      this.#normalizedSchema.push({
+        index,
+        name: key,
+        type: this.#getType(type),
+        parse,
+      });
     }
   }
 
@@ -134,14 +160,17 @@ class Cities {
 const startTime = performance.now();
 
 const schema = {
-  name: { type: String, format: { stringMethod: 'padEnd', args: [18] } },
-  population: { type: Number, format: { stringMethod: 'padEnd', args: [10] } },
-  area: { type: Number, format: { stringMethod: 'padEnd', args: [8] } },
-  density: { type: Number, format: { stringMethod: 'padEnd', args: [8] } },
-  country: { type: String, format: { stringMethod: 'padEnd', args: [18] } },
+  name: { type: 'string', format: { stringMethod: 'padEnd', args: [14] } },
+  population: {
+    type: 'number',
+    format: { stringMethod: 'padStart', args: [10] },
+  },
+  area: { type: 'number', format: { stringMethod: 'padStart', args: [8] } },
+  density: { type: 'number', format: { stringMethod: 'padStart', args: [8] } },
+  country: { type: 'string', format: { stringMethod: 'padStart', args: [18] } },
   percentage: {
-    type: Number,
-    format: { stringMethod: 'padEnd', args: [18] },
+    type: 'number',
+    format: { stringMethod: 'padStart', args: [5] },
     parse: false,
   },
 };
