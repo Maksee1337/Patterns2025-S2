@@ -56,8 +56,21 @@ class Basket {
         if (typeof this.#callback !== 'function') return;
         this.#callback(this.#items, this.#total);
     }
+
+    result() {
+        setTimeout(() => {
+            const total = { name: 'Total', price: this.#total };
+            this.ready([ ...this.#items, total ]);
+        }, 1000);
+        return this;
+    }
+
     then(onFulfilled) {
-       onFulfilled(this.#items);
+        this.onFulfilled = onFulfilled;
+    }
+
+    ready(data) {
+        this.onFulfilled(data);
     }
 }
 
@@ -69,7 +82,8 @@ const main = async () => {
     for await (const item of goods) {
         basket.add(item);
     }
-    console.log(await basket);
+    const result = await basket.result();
+    console.log(result);
 };
 
 main();
